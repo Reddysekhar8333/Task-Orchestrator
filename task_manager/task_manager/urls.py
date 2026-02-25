@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import path, include # Make sure 'include' is imported
 
 urlpatterns = [
-    path('admin/', admin.site.status),
+    path('admin/', admin.site.urls),
     
     # This links the main URL to your 'users' app
     path('api/', include('users.urls')), 
