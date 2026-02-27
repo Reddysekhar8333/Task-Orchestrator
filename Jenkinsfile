@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/Reddysekhar8333/Task-Orchestrator.git'
+                git branch: 'main', url:'https://github.com/Reddysekhar8333/Task-Orchestrator.git'
             }
         }
         stage('Build Containers') {
