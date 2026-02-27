@@ -63,3 +63,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(tasks, many=True)
         return Response(serializer.data)
+    def perform_create(self, serializer):
+        task = serializer.save(user=self.request.user)
+        # HAND OFF TO ORCHESTRATOR
+        process_task_file.delay(task.id)
