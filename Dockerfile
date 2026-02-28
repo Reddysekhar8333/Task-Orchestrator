@@ -1,21 +1,30 @@
+# Use official Python image
 FROM python:3.11-slim
-# set the environment variables
+
+# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-# Install system dependencies for Azure SQL (msodbcsql18)
-RUN apt-get update && apt-get install -y \
-    curl gnupg2 apt-transport-https && \
-    curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
-    curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
-    apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev && \
-    rm -rf /var/lib/apt/lists/*
 
+# Set work directory
 WORKDIR /app
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies
 COPY requirements.txt .
+# We install these directly here so they aren't needed in your local requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir azure-identity azure-keyvault-secrets gunicorn
 
-COPY . /app/
+# Copy project
+COPY . .
 
-WORKDIR /app/task_manager
+# Expose port
+EXPOSE 8000
+
+# Run the application
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "task_manager.wsgi:application"]
