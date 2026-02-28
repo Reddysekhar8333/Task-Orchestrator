@@ -60,6 +60,9 @@ SECRET_KEY = VAULT_SECRETS.get('SECRET_KEY') or os.getenv('SECRET_KEY', 'default
 DEBUG = _get_env_bool('DEBUG', True)
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
 
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
