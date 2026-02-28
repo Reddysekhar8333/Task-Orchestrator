@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Task Orchestrator Console</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --brand: #5a67d8;
+            --brand-dark: #3f4db8;
+            --bg-soft: #f6f8ff;
+            --card-shadow: 0 8px 24px rgba(22, 31, 72, 0.08);
+        }
+
+        body {
+            background: linear-gradient(180deg, #f8faff 0%, #f4f6fb 100%);
+            min-height: 100vh;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: .2px;
+        }
+
+        .hero {
+            background: radial-gradient(circle at right top, #8ea5ff, var(--brand));
+            border-radius: 1rem;
+            color: #fff;
+            box-shadow: var(--card-shadow);
+        }
+
+        .glass {
+            background: #fff;
+            border-radius: 1rem;
+            border: 1px solid rgba(90, 103, 216, .15);
+            box-shadow: var(--card-shadow);
+        }
+
+        .stat-pill {
+            border-radius: 999px;
+            background: var(--bg-soft);
+            color: #303b7a;
+            padding: .35rem .8rem;
+            font-size: .85rem;
+            font-weight: 600;
+        }
+
+        .endpoint-card code {
+            color: #364ad2;
+            font-weight: 600;
+        }
+
+        .btn-brand {
+            background: var(--brand);
+            border-color: var(--brand);
+            color: #fff;
+        }
+
+        .btn-brand:hover {
+            background: var(--brand-dark);
+            border-color: var(--brand-dark);
+            color: #fff;
+        }
+
+        pre {
+            max-height: 280px;
+            overflow: auto;
+            background: #0f172a;
+            color: #d3e3ff;
+            border-radius: .75rem;
+            padding: .9rem;
+            margin-bottom: 0;
+            font-size: .85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+        <div class="container py-1">
+            <a class="navbar-brand text-primary" href="#">Task Orchestrator</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"><span
+                    class="navbar-toggler-icon"></span></button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav ms-auto gap-lg-2">
+                    <li class="nav-item"><a class="nav-link" href="#auth">Authentication</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#tasks">Tasks</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#endpoints">Endpoints</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <main class="container py-4 py-lg-5">
+        <section class="hero p-4 p-lg-5 mb-4">
+            <h1 class="h3 fw-bold">Unified API Console</h1>
+            <p class="mb-3">Navigate all endpoints quickly, test requests instantly, and keep JWT auth/session controls
+                in one place.</p>
+            <div class="d-flex flex-wrap gap-2"><span class="stat-pill">JWT Ready</span><span class="stat-pill">Task
+                    Dashboard</span><span class="stat-pill">Endpoint Explorer</span></div>
+        </section>
+        <div class="row g-4" id="auth">
+            <div class="col-12 col-xl-4">
+                <section class="glass p-3 p-lg-4 h-100">
+                    <h2 class="h5">Connection</h2>
+                    <label class="form-label">API Base URL</label>
+                    <input id="baseUrl" class="form-control mb-3" value="/api" />
+                    <label class="form-label">Access Token</label>
+                    <textarea id="token" rows="6" class="form-control mb-3"
+                        placeholder="JWT token appears here after login"></textarea>
+                    <div class="d-grid gap-2 d-md-flex"><button class="btn btn-outline-secondary flex-fill"
+                            id="saveToken">Save token</button><button class="btn btn-outline-danger flex-fill"
+                            id="clearToken">Clear</button></div>
+                </section>
+            </div>
+            <div class="col-12 col-xl-8">
+                <section class="glass p-3 p-lg-4">
+                    <ul class="nav nav-pills mb-3" role="tablist">
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill"
+                                data-bs-target="#loginPane">Login</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill"
+                                data-bs-target="#registerPane">Register</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill"
+                                data-bs-target="#profilePane">Profile</button></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="loginPane">
+                            <div class="row g-2">
+                                <div class="col-md-6"><input id="loginIdentifier" class="form-control"
+                                        placeholder="Email or username" /></div>
+                                <div class="col-md-4"><input id="loginPassword" type="password" class="form-control"
+                                        placeholder="Password" /></div>
+                                <div class="col-md-2 d-grid"><button class="btn btn-brand" id="loginBtn">Login</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="registerPane">
+                            <div class="row g-2">
+                                <div class="col-md-4"><input id="regUsername" class="form-control"
+                                        placeholder="Username" /></div>
+                                <div class="col-md-4"><input id="regEmail" class="form-control" placeholder="Email" />
+                                </div>
+                                <div class="col-md-4"><input id="regPassword" type="password" class="form-control"
+                                        placeholder="Password" /></div>
+                                <div class="col-12 d-grid"><button class="btn btn-brand" id="registerBtn">Create
+                                        account</button></div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="profilePane">
+                            <div class="d-grid gap-2 d-md-flex"><button class="btn btn-brand" id="loadProfileBtn">Load
+                                    profile</button></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+        <section class="glass p-3 p-lg-4 mt-4" id="tasks">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 mb-0">Task Workspace</h2>
+                <div class="d-flex gap-2"><button class="btn btn-outline-primary btn-sm" id="statsBtn">Dashboard
+                        stats</button><button class="btn btn-outline-primary btn-sm" id="listTasksBtn">List
+                        tasks</button></div>
+            </div>
+            <div class="row g-2">
+                <div class="col-md-4"><input id="taskTitle" class="form-control" placeholder="Task title" /></div>
+                <div class="col-md-3"><input id="taskType" class="form-control" placeholder="Task type" /></div>
+                <div class="col-md-3"><input id="taskPriority" class="form-control" placeholder="Priority" /></div>
+                <div class="col-md-2 d-grid"><button class="btn btn-brand" id="createTaskBtn">Create</button></div>
+                <div class="col-12"><textarea id="taskDescription" class="form-control" rows="2"
+                        placeholder="Task description"></textarea></div>
+            </div>
+            <div class="row g-2 mt-2">
+                <div class="col-md-6"><input id="taskId" class="form-control"
+                        placeholder="Task ID (for retrieve/cancel/delete)" /></div>
+                <div class="col-md-3 d-grid"><button class="btn btn-outline-secondary" id="getTaskBtn">Get by
+                        ID</button></div>
+                <div class="col-md-3 d-grid"><button class="btn btn-outline-danger" id="cancelTaskBtn">Cancel
+                        task</button></div>
+            </div>
+        </section>
+        <section class="glass p-3 p-lg-4 mt-4" id="endpoints">
+            <h2 class="h5">Endpoint Quick Navigation</h2>
+            <div class="row g-3 mt-1" id="endpointList"></div>
+        </section>
+        <section class="glass p-3 p-lg-4 mt-4">
+            <h2 class="h5">Live Response</h2>
+            <pre id="response">Ready. Trigger any action to see API responses here.</pre>
+        </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const responseEl = document.getElementById('response');
+        const endpoints = [
+            ['POST', '/register/', 'Create user account'], ['POST', '/login/', 'Get access & refresh tokens'], ['POST', '/token/refresh/', 'Refresh access token'],
+            ['GET/PUT', '/profile/', 'Get or update authenticated profile'], ['GET/POST', '/tasks/', 'List or create tasks'], ['GET/PUT/PATCH/DELETE', '/tasks/{id}/', 'Retrieve/update/delete one task'],
+            ['GET', '/tasks/dashboard_stats/', 'Aggregate stats + recent tasks'], ['GET', '/tasks/by_status/', 'Filter tasks by status query params'], ['POST', '/tasks/{id}/cancel/', 'Cancel pending/processing task']
+        ];
+        function baseUrl() { return document.getElementById('baseUrl').value.replace(/\/$/, ''); }
+        function token() { return document.getElementById('token').value.trim(); }
+        function renderEndpoints() {
+            document.getElementById('endpointList').innerHTML = endpoints.map(([method, path, desc]) => `<div class="col-md-6 col-xl-4"><div class="endpoint-card border rounded-3 p-3 h-100 bg-white"><div class="d-flex justify-content-between align-items-center mb-2"><span class="badge text-bg-primary">${method}</span><small class="text-muted">${desc}</small></div><code>${path}</code><div class="mt-2 d-grid"><button class="btn btn-sm btn-outline-primary" onclick="navigator.clipboard.writeText('${path}')">Copy path</button></div></div></div>`).join('');
+        }
+        async function apiCall(path, method = 'GET', body = null) {
+            const headers = { 'Content-Type': 'application/json' }; if (token()) headers['Authorization'] = `Bearer ${token()}`;
+            const opts = { method, headers }; if (body) opts.body = JSON.stringify(body);
+            try {
+                const res = await fetch(`${baseUrl()}${path}`, opts); const data = await res.json().catch(() => ({ detail: 'No JSON response' }));
+                responseEl.textContent = JSON.stringify({ status: res.status, data }, null, 2); return { res, data };
+            } catch (error) { responseEl.textContent = JSON.stringify({ error: error.message }, null, 2); return null; }
+        }
+        document.getElementById('saveToken').onclick = () => { localStorage.setItem('task_orchestrator_token', token()); responseEl.textContent = 'Token saved to localStorage.'; };
+        document.getElementById('clearToken').onclick = () => { document.getElementById('token').value = ''; localStorage.removeItem('task_orchestrator_token'); responseEl.textContent = 'Token cleared.'; };
+        document.getElementById('loginBtn').onclick = async () => { const identifier = document.getElementById('loginIdentifier').value; const password = document.getElementById('loginPassword').value; const payload = identifier.includes('@') ? { email: identifier, password } : { username: identifier, password }; const result = await apiCall('/login/', 'POST', payload); if (result?.data?.access) document.getElementById('token').value = result.data.access; };
+        document.getElementById('registerBtn').onclick = () => apiCall('/register/', 'POST', { username: document.getElementById('regUsername').value, email: document.getElementById('regEmail').value, password: document.getElementById('regPassword').value });
+        document.getElementById('loadProfileBtn').onclick = () => apiCall('/profile/');
+        document.getElementById('createTaskBtn').onclick = () => apiCall('/tasks/', 'POST', { title: document.getElementById('taskTitle').value, description: document.getElementById('taskDescription').value, task_type: document.getElementById('taskType').value, priority: document.getElementById('taskPriority').value });
+        document.getElementById('listTasksBtn').onclick = () => apiCall('/tasks/');
+        document.getElementById('statsBtn').onclick = () => apiCall('/tasks/dashboard_stats/');
+        document.getElementById('getTaskBtn').onclick = () => { const id = document.getElementById('taskId').value; if (!id) return responseEl.textContent = 'Provide a task ID first.'; apiCall(`/tasks/${id}/`); };
+        document.getElementById('cancelTaskBtn').onclick = () => { const id = document.getElementById('taskId').value; if (!id) return responseEl.textContent = 'Provide a task ID first.'; apiCall(`/tasks/${id}/cancel/`, 'POST'); };
+        const storedToken = localStorage.getItem('task_orchestrator_token'); if (storedToken) document.getElementById('token').value = storedToken; renderEndpoints();
+    </script>
+</body>
+
+</html>
