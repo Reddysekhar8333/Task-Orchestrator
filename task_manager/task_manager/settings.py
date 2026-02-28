@@ -26,8 +26,10 @@ def _load_keyvault_secrets(vault_name: str) -> dict[str, str]:
         'DJANGO-SECRET-KEY': 'SECRET_KEY',
         'DB-NAME': 'DB_NAME',
         'DB-USER': 'DB_USER',
-        'DB-PASS': 'DB_PASS',
+        'DB-PASSWORD': 'DB_PASS',
         'DB-HOST': 'DB_HOST',
+        'DB-PORT': 'DB_PORT',
+        'AZURE-STORAGE-CONNECTION-STRING': 'AZURE_STORAGE_CONNECTION_STRING',
         'AZURE-ACCOUNT-NAME': 'AZURE_ACCOUNT_NAME',
         'AZURE-ACCOUNT-KEY': 'AZURE_ACCOUNT_KEY',
     }
@@ -60,6 +62,9 @@ SECRET_KEY = VAULT_SECRETS.get('SECRET_KEY') or os.getenv('SECRET_KEY', 'default
 DEBUG = _get_env_bool('DEBUG', True)
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
 
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -70,6 +75,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'storages',
     'users',
     'tasks',
 ]
@@ -128,7 +134,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'task_manager.wsgi.application'
 
-if os.getenv('ENV') == 'PROD':
+USE_AZURE_SQL = _get_env_bool('USE_AZURE_SQL', os.getenv('ENV') == 'PROD')
+
+if USE_AZURE_SQL:
     DATABASES = {
         'default': {
             'ENGINE': 'mssql',
@@ -136,10 +144,13 @@ if os.getenv('ENV') == 'PROD':
             'USER': VAULT_SECRETS.get('DB_USER') or os.getenv('DB_USER'),
             'PASSWORD': VAULT_SECRETS.get('DB_PASS') or os.getenv('DB_PASS'),
             'HOST': VAULT_SECRETS.get('DB_HOST') or os.getenv('DB_HOST'),
-            'PORT': '1433',
+            'PORT': VAULT_SECRETS.get('DB_PORT') or os.getenv('DB_PORT', '1433'),
             'OPTIONS': {
-                'driver': 'ODBC Driver 17 for SQL Server',
-                'extra_params': 'Encrypt=yes;TrustServerCertificate=no',
+                'driver': os.getenv('SQL_SERVER_DRIVER', 'ODBC Driver 17 for SQL Server'),
+                'extra_params': os.getenv(
+                    'SQL_SERVER_EXTRA_PARAMS',
+                    'Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;',
+                ),
             },
         }
     }
@@ -168,9 +179,15 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
-if (VAULT_SECRETS.get('AZURE_ACCOUNT_NAME') or os.getenv('AZURE_ACCOUNT_NAME')) and (
-    VAULT_SECRETS.get('AZURE_ACCOUNT_KEY') or os.getenv('AZURE_ACCOUNT_KEY')
-):
+AZURE_ACCOUNT_NAME = VAULT_SECRETS.get('AZURE_ACCOUNT_NAME') or os.getenv('AZURE_ACCOUNT_NAME')
+AZURE_ACCOUNT_KEY = VAULT_SECRETS.get('AZURE_ACCOUNT_KEY') or os.getenv('AZURE_ACCOUNT_KEY')
+AZURE_CONNECTION_STRING = VAULT_SECRETS.get('AZURE_STORAGE_CONNECTION_STRING') or os.getenv(
+    'AZURE_STORAGE_CONNECTION_STRING'
+)
+AZURE_MEDIA_CONTAINER = os.getenv('AZURE_MEDIA_CONTAINER', 'media')
+AZURE_STATIC_CONTAINER = os.getenv('AZURE_STATIC_CONTAINER', 'static')
+
+if AZURE_CONNECTION_STRING or (AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY):
     DEFAULT_FILE_STORAGE = 'task_manager.custom_azure.AzureMediaStorage'
 
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')

@@ -21,6 +21,17 @@ services:
       ENV: PROD
       DEBUG: "False"
       AZURE_VAULT_NAME: ${AZURE_VAULT_NAME}
+      USE_AZURE_SQL: ${USE_AZURE_SQL:-True}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-1433}
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING}
+      AZURE_ACCOUNT_NAME: ${AZURE_ACCOUNT_NAME}
+      AZURE_ACCOUNT_KEY: ${AZURE_ACCOUNT_KEY}
+      AZURE_MEDIA_CONTAINER: ${AZURE_MEDIA_CONTAINER:-media}
+      AZURE_STATIC_CONTAINER: ${AZURE_STATIC_CONTAINER:-static}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
@@ -41,10 +52,33 @@ services:
       ENV: PROD
       DEBUG: "False"
       AZURE_VAULT_NAME: ${AZURE_VAULT_NAME}
+      USE_AZURE_SQL: ${USE_AZURE_SQL:-True}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-1433}
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING}
+      AZURE_ACCOUNT_NAME: ${AZURE_ACCOUNT_NAME}
+      AZURE_ACCOUNT_KEY: ${AZURE_ACCOUNT_KEY}
+      AZURE_MEDIA_CONTAINER: ${AZURE_MEDIA_CONTAINER:-media}
+      AZURE_STATIC_CONTAINER: ${AZURE_STATIC_CONTAINER:-static}
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
     depends_on:
       redis:
         condition: service_healthy
+      web:
+        condition: service_started
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: task_orchestrator_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
       web:
         condition: service_started
