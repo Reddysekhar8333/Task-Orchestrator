@@ -41,7 +41,15 @@ pipeline {
                       -e DEBUG=False \
                       -e SECRET_KEY=jenkins_test_secret \
                       -e CELERY_BROKER_URL=redis://redis:6379/0 \
-                      web python manage.py test
+                      web sh -c "if [ -f manage.py ]; then \
+                        python manage.py test; \
+                      elif [ -f task_manager/manage.py ]; then \
+                        python task_manager/manage.py test; \
+                      else \
+                        echo 'ERROR: manage.py not found. Checked ./manage.py and ./task_manager/manage.py' >&2; \
+                        find /app -maxdepth 5 -name manage.py -print || true; \
+                        exit 1; \
+                      fi"
                 '''
             }
         }
