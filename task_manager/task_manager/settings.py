@@ -25,21 +25,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-import os
-
-# Jenkins passes this in the 'Deploy' stage above
-vault_name = os.environ.get('AZURE_VAULT_NAME')
-
-if vault_name:
-    # This ONLY runs on the Azure VM
+# 1. Check if we are in production
+if os.environ.get('my-djanog-vault'):
     from azure.identity import DefaultAzureCredential
     from azure.keyvault.secrets import SecretClient
+
+    KV_NAME = os.environ.get('my-djanog-vault')
+    KV_URI = f"https://{KV_NAME}.vault.azure.net"
     
-    client = SecretClient(vault_url=f"https://{vault_name}.vault.azure.net", credential=DefaultAzureCredential())
+    # This automatically uses the VM's Managed Identity!
+    credential = DefaultAzureCredential()
+    client = SecretClient(vault_url=KV_URI, credential=credential)
+    
     SECRET_KEY = client.get_secret("DJANGO-SECRET-KEY").value
 else:
-    # This runs in Jenkins and on your local machine
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'default-insecure-key')
+    # Fallback for local development
+    SECRET_KEY = os.getenv('SECRET_KEY') # stored in the .env file
 
 # SECURITY WARNING: Check environment variable for Debug
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
