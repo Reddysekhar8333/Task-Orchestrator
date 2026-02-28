@@ -8,13 +8,15 @@ services:
 
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    container_name: django_app
+    environment:
+      # Only pass the Vault Name; Django will fetch the rest
+      - AZURE_VAULT_NAME=your-keyvault-name 
+      - DEBUG=True
     volumes:
       - .:/app
     ports:
       - "8000:8000"
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
     depends_on:
       - redis
 
