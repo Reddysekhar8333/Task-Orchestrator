@@ -5,6 +5,10 @@ pipeline {
         timestamps()
         ansiColor('xterm')
     }
+    
+    triggers {
+        githubPush()
+    }
 
     environment {
         COMPOSE_FILE = 'docker-compose.yml'
@@ -25,14 +29,14 @@ pipeline {
 
         stage('Build Containers') {
             steps {
-                sh 'docker compose -f ${COMPOSE_FILE} build --pull'
+                sh 'docker-compose -f ${COMPOSE_FILE} build --pull'
             }
         }
 
         stage('Run Tests') {
             steps {
                 sh '''
-                    docker compose -f ${COMPOSE_FILE} run --rm \
+                    docker-compose -f ${COMPOSE_FILE} run --rm \
                       -e ENV=CI \
                       -e DEBUG=False \
                       -e SECRET_KEY=jenkins_test_secret \
@@ -51,8 +55,8 @@ pipeline {
                     # For Azure VM with Managed Identity, this enables Key Vault auth for DefaultAzureCredential.
                     az login --identity || true
 
-                    docker compose -f ${COMPOSE_FILE} up -d --remove-orphans
-                    docker compose -f ${COMPOSE_FILE} ps
+                    docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
+                    docker-compose -f ${COMPOSE_FILE} ps
                 '''
                 echo 'Deployment successful.'
             }
@@ -61,7 +65,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker compose -f ${COMPOSE_FILE} ps || true'
+            sh 'docker-compose -f ${COMPOSE_FILE} ps || true'
         }
         success {
             echo 'Pipeline completed successfully!'
