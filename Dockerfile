@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-WORKDIR /app
+WORKDIR /app/task_manager
 
 # System dependencies for building wheels and connecting to Azure SQL (pyodbc + msodbcsql18)
 RUN apt-get update && apt-get install -y --no-install-recommends \
