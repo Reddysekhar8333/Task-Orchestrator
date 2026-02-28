@@ -1,31 +1,50 @@
-version: '3.8'
+version: '3.9'
 
 services:
   redis:
-    image: "redis:alpine"
-    ports:
-      - "6379:6379"
+    image: redis:7-alpine
+    container_name: task_orchestrator_redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
-    build: .
-    container_name: django_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task_orchestrator_web
+    restart: unless-stopped
     environment:
-      # Only pass the Vault Name; Django will fetch the rest
-      - AZURE_VAULT_NAME=your-keyvault-name 
-      - DEBUG=True
-    volumes:
-      - .:/app
+      ENV: PROD
+      DEBUG: "False"
+      AZURE_VAULT_NAME: ${AZURE_VAULT_NAME}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
     ports:
       - "8000:8000"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   celery:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task_orchestrator_celery
+    restart: unless-stopped
     command: celery -A task_manager worker --loglevel=info
-    volumes:
-      - .:/app
+    environment:
+      ENV: PROD
+      DEBUG: "False"
+      AZURE_VAULT_NAME: ${AZURE_VAULT_NAME}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
     depends_on:
-      - redis
-      - web
-      
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
