@@ -24,7 +24,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY') # stored in the .env file
+
+# 1. Check if we are in production
+if os.environ.get('my-djanog-vault'):
+    from azure.identity import DefaultAzureCredential
+    from azure.keyvault.secrets import SecretClient
+
+    KV_NAME = os.environ.get('my-djanog-vault')
+    KV_URI = f"https://{KV_NAME}.vault.azure.net"
+    
+    # This automatically uses the VM's Managed Identity!
+    credential = DefaultAzureCredential()
+    client = SecretClient(vault_url=KV_URI, credential=credential)
+    
+    SECRET_KEY = client.get_secret("DJANGO-SECRET-KEY").value
+else:
+    # Fallback for local development
+    SECRET_KEY = os.getenv('SECRET_KEY') # stored in the .env file
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
