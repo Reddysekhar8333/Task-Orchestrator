@@ -14,6 +14,8 @@ pipeline {
     environment {
         COMPOSE_FILE = 'docker-compose.yml'
         IMAGE_TAG = "${env.BUILD_NUMBER}"
+        SOURCE_DIR = "src-${env.BUILD_NUMBER}"
+        COMPOSE_PROJECT_NAME = 'task-orchestrator'
     }
 
     parameters {
@@ -22,9 +24,33 @@ pipeline {
     }
 
     stages {
+        stage('Prepare workspace'){
+            steps {
+                sh '''
+                    # Some previous Docker runs can leave root-owned files/directories in
+                    # the Jenkins workspace, which breaks SCM checkout on the next build.
+                    if command -v docker >/dev/null 2>&1; then
+                      docker run --rm -v "${WORKSPACE}:/workspace" alpine:3.20 \
+                        sh -c "chown -R $(id -u):$(id -g) /workspace" || true
+                    fi
+
+                    # Defensive cleanup for the path that previously blocked checkout.
+                    if [ -d "${WORKSPACE}/nginx/default.conf" ]; then
+                      chmod -R u+w "${WORKSPACE}/nginx/default.conf" || true
+                      rm -rf "${WORKSPACE}/nginx/default.conf" || true
+                    fi
+                '''
+                deleteDir()
+            }
+        }
+
         stage('Checkout') {
             steps {
+                //checkout scm
                 checkout scm
+                dir("${SOURCE_DIR}") {
+                    checkout scm
+                }
             }
         }
 
@@ -36,45 +62,51 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                sh '''
-                    docker-compose -f ${COMPOSE_FILE} run --rm \
-                      -e ENV=CI \
-                      -e DEBUG=False \
-                      -e SECRET_KEY=jenkins_test_secret \
-                      -e CELERY_BROKER_URL=redis://redis:6379/0 \
-                      web sh -c "if [ -f manage.py ]; then \
-                        python manage.py test; \
-                      elif [ -f task_manager/manage.py ]; then \
-                        python task_manager/manage.py test; \
-                      else \
-                        echo 'ERROR: manage.py not found. Checked ./manage.py and ./task_manager/manage.py' >&2; \
-                        find /app -maxdepth 5 -name manage.py -print || true; \
-                        exit 1; \
-                      fi"
-                '''
+                dir("${SOURCE_DIR}") {
+                    sh '''
+                        docker-compose -f ${COMPOSE_FILE} run --rm \
+                        -e ENV=CI \
+                        -e DEBUG=False \
+                        -e SECRET_KEY=jenkins_test_secret \
+                        -e CELERY_BROKER_URL=redis://redis:6379/0 \
+                        web sh -c "if [ -f manage.py ]; then \
+                            python manage.py test; \
+                        elif [ -f task_manager/manage.py ]; then \
+                            python task_manager/manage.py test; \
+                        else \
+                            echo 'ERROR: manage.py not found. Checked ./manage.py and ./task_manager/manage.py' >&2; \
+                            find /app -maxdepth 5 -name manage.py -print || true; \
+                            exit 1; \
+                        fi"
+                    '''
+                }
             }
         }
 
         stage('Deploy') {
             steps {
-                sh '''
-                    export AZURE_VAULT_NAME=${AZURE_VAULT_NAME}
-                    export ALLOWED_HOSTS=${ALLOWED_HOSTS}
+                dir("${SOURCE_DIR}") {
+                    sh '''
+                        export AZURE_VAULT_NAME=${AZURE_VAULT_NAME}
+                        export ALLOWED_HOSTS=${ALLOWED_HOSTS}
 
-                    # For Azure VM with Managed Identity, this enables Key Vault auth for DefaultAzureCredential.
-                    az login --identity || true
+                        # For Azure VM with Managed Identity, this enables Key Vault auth for DefaultAzureCredential.
+                        az login --identity || true
 
-                    docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
-                    docker-compose -f ${COMPOSE_FILE} ps
-                '''
-                echo 'Deployment successful.'
+                        docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
+                        docker-compose -f ${COMPOSE_FILE} ps
+                    '''
+                    echo 'Deployment successful.'
+                }
             }
         }
     }
 
     post {
         always {
-            sh 'docker-compose -f ${COMPOSE_FILE} ps || true'
+            dir("${SOURCE_DIR}") {
+                sh 'docker-compose -f ${COMPOSE_FILE} ps || true'
+            }
         }
         success {
             echo 'Pipeline completed successfully!'
