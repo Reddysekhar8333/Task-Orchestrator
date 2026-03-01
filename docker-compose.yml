@@ -2,7 +2,7 @@ x-app-env: &app-env
   ENV: PROD
   DEBUG: "False"
   AZURE_VAULT_NAME: ${AZURE_VAULT_NAME:-}
-  USE_AZURE_SQL: ${USE_AZURE_SQL:-False}
+  USE_AZURE_SQL: ${USE_AZURE_SQL:-True}
   DB_NAME: ${DB_NAME:-}
   DB_USER: ${DB_USER:-}
   DB_PASS: ${DB_PASS:-}

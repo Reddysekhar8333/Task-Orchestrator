@@ -6,9 +6,15 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load both possible project .env locations and give them precedence over
+# inherited container/shell values so local configuration is honored.
+for dotenv_path in (BASE_DIR.parent / '.env', BASE_DIR / '.env'):
+    if dotenv_path.exists():
+        load_dotenv(dotenv_path=dotenv_path, override=True)
 
 
 def _get_env_bool(name: str, default: bool = False) -> bool:
@@ -21,7 +27,6 @@ def _load_keyvault_secrets(vault_name: str) -> dict[str, str]:
     If Key Vault is unavailable (local dev/Jenkins), return an empty dict and
     allow environment-variable fallbacks.
     """
-
     secret_mapping = {
         'DJANGO-SECRET-KEY': 'SECRET_KEY',
         'DB-NAME': 'DB_NAME',
@@ -33,7 +38,6 @@ def _load_keyvault_secrets(vault_name: str) -> dict[str, str]:
         'AZURE-ACCOUNT-NAME': 'AZURE_ACCOUNT_NAME',
         'AZURE-ACCOUNT-KEY': 'AZURE_ACCOUNT_KEY',
     }
-
     try:
         from azure.identity import DefaultAzureCredential
         from azure.keyvault.secrets import SecretClient
