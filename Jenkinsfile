@@ -89,10 +89,14 @@ pipeline {
                     sh '''
                         export AZURE_VAULT_NAME=${AZURE_VAULT_NAME}
                         export ALLOWED_HOSTS=${ALLOWED_HOSTS}
-
+                        export USE_AZURE_SQL=${USE_AZURE_SQL:-False}
+                        
                         # For Azure VM with Managed Identity, this enables Key Vault auth for DefaultAzureCredential.
-                        az login --identity || true
-
+                        if command -v az >/dev/null 2>&1; then
+                          az login --identity || true
+                        else
+                          echo "Azure CLI not found; continuing without az login."
+                        fi
                         docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
                         docker-compose -f ${COMPOSE_FILE} ps
                     '''
