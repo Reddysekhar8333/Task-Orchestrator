@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# load_dotenv()
+#  load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -18,7 +18,11 @@ for dotenv_path in (BASE_DIR.parent / '.env', BASE_DIR / '.env'):
 
 
 def _get_env_bool(name: str, default: bool = False) -> bool:
-    return os.getenv(name, str(default)).lower() in {'1', 'true', 'yes', 'on'}
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+
+    return raw_value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
 
 def _load_keyvault_secrets(vault_name: str) -> dict[str, str]:

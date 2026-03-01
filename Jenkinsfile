@@ -89,8 +89,8 @@ pipeline {
                     sh '''
                         export AZURE_VAULT_NAME=${AZURE_VAULT_NAME}
                         export ALLOWED_HOSTS=${ALLOWED_HOSTS}
-                        export USE_AZURE_SQL=${USE_AZURE_SQL:-False}
-                        
+                        export USE_AZURE_SQL=${USE_AZURE_SQL:-True}
+
                         # For Azure VM with Managed Identity, this enables Key Vault auth for DefaultAzureCredential.
                         if command -v az >/dev/null 2>&1; then
                           az login --identity || true
