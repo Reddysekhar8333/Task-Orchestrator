@@ -32,6 +32,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    command: gunicorn --bind 0.0.0.0:8000 task_manager.wsgi:application
     environment:
       <<: *app-env
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
@@ -50,7 +51,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: gunicorn task_manager.wsgi:application --bind 0.0.0.0:8000
+    #command: gunicorn task_manager.wsgi:application --bind 0.0.0.0:8000
 
   celery:
     build:
