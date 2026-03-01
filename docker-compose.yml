@@ -1,5 +1,24 @@
 version: '3.9'
 
+x-app-env: &app-env
+  ENV: PROD
+  DEBUG: "False"
+  AZURE_VAULT_NAME: ${AZURE_VAULT_NAME}
+  USE_AZURE_SQL: ${USE_AZURE_SQL:-True}
+  DB_NAME: ${DB_NAME}
+  DB_USER: ${DB_USER}
+  DB_PASS: ${DB_PASS}
+  DB_HOST: ${DB_HOST}
+  DB_PORT: ${DB_PORT:-1433}
+  SQL_SERVER_DRIVER: ${SQL_SERVER_DRIVER:-ODBC Driver 18 for SQL Server}
+  AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING}
+  AZURE_ACCOUNT_NAME: ${AZURE_ACCOUNT_NAME}
+  AZURE_ACCOUNT_KEY: ${AZURE_ACCOUNT_KEY}
+  AZURE_MEDIA_CONTAINER: ${AZURE_MEDIA_CONTAINER:-media}
+  AZURE_STATIC_CONTAINER: ${AZURE_STATIC_CONTAINER:-static}
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/0
+
 services:
   redis:
     image: redis:7-alpine
@@ -18,25 +37,16 @@ services:
     container_name: task_orchestrator_web
     restart: unless-stopped
     environment:
-      ENV: PROD
-      DEBUG: "False"
-      AZURE_VAULT_NAME: ${AZURE_VAULT_NAME}
-      USE_AZURE_SQL: ${USE_AZURE_SQL:-True}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT:-1433}
-      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING}
-      AZURE_ACCOUNT_NAME: ${AZURE_ACCOUNT_NAME}
-      AZURE_ACCOUNT_KEY: ${AZURE_ACCOUNT_KEY}
-      AZURE_MEDIA_CONTAINER: ${AZURE_MEDIA_CONTAINER:-media}
-      AZURE_STATIC_CONTAINER: ${AZURE_STATIC_CONTAINER:-static}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
-    ports:
-      - "8000:8000"
+      <<: *app-env
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     depends_on:
       redis:
         condition: service_healthy
@@ -49,27 +59,12 @@ services:
     restart: unless-stopped
     command: celery -A task_manager worker --loglevel=info
     environment:
-      ENV: PROD
-      DEBUG: "False"
-      AZURE_VAULT_NAME: ${AZURE_VAULT_NAME}
-      USE_AZURE_SQL: ${USE_AZURE_SQL:-True}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT:-1433}
-      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING}
-      AZURE_ACCOUNT_NAME: ${AZURE_ACCOUNT_NAME}
-      AZURE_ACCOUNT_KEY: ${AZURE_ACCOUNT_KEY}
-      AZURE_MEDIA_CONTAINER: ${AZURE_MEDIA_CONTAINER:-media}
-      AZURE_STATIC_CONTAINER: ${AZURE_STATIC_CONTAINER:-static}
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      <<: *app-env
     depends_on:
       redis:
         condition: service_healthy
       web:
-        condition: service_started
+        condition: service_healthy
 
   nginx:
     image: nginx:1.27-alpine
@@ -81,4 +76,4 @@ services:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       web:
-        condition: service_started
+        condition: service_healthy
