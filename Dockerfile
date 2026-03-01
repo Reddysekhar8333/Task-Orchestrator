@@ -31,5 +31,8 @@ COPY . .
 # Expose Django port
 EXPOSE 8000
 
+# Container-level healthcheck for platforms that honor Docker image health status.
+HEALTHCHECK --interval=10s --timeout=10s --start-period=90s --retries=12     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)" || exit 1
+
 # Run migrations and start the application
 CMD ["sh", "-c", "if [ -f task_manager/manage.py ]; then python task_manager/manage.py migrate && gunicorn --chdir /app/task_manager --bind 0.0.0.0:8000 task_manager.wsgi:application; else python manage.py migrate && gunicorn --bind 0.0.0.0:8000 task_manager.wsgi:application; fi"]
