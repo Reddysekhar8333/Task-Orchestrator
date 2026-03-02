@@ -130,11 +130,11 @@ pipeline {
                             docker-compose -f ${COMPOSE_FILE} ps
                     '''
                     echo 'Deployment successful.'
+                    }
                 }
             }
         }
     }
-
     post {
         always {
             dir("${SOURCE_DIR}") {
