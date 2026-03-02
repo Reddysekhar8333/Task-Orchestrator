@@ -91,6 +91,22 @@ pipeline {
                         export ALLOWED_HOSTS=${ALLOWED_HOSTS}
                         export USE_AZURE_SQL=${USE_AZURE_SQL:-True}
                         export NGINX_HOST_PORT=${NGINX_HOST_PORT:-8080}
+                        
+                        if docker ps --format '{{.Names}}' | grep -q '^task-orchestrator-'; then
+                          echo "Stopping existing task-orchestrator containers before redeploy..."
+                          docker-compose -f ${COMPOSE_FILE} down --remove-orphans || true
+                        fi
+
+                        if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :${NGINX_HOST_PORT}" | grep -q LISTEN; then
+                          echo "Requested host port ${NGINX_HOST_PORT} is already in use. Searching for an available port..."
+                          CANDIDATE_PORT=${NGINX_HOST_PORT}
+                          while ss -ltn "sport = :${CANDIDATE_PORT}" | grep -q LISTEN; do
+                            CANDIDATE_PORT=$((CANDIDATE_PORT + 1))
+                          done
+                          export NGINX_HOST_PORT=${CANDIDATE_PORT}
+                          echo "Using fallback host port ${NGINX_HOST_PORT} for nginx."
+                        fi
+
                         # Credentials are expected to be injected by Jenkins Global Credentials as environment variables before this deploy stage runs.
                         docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
                         docker-compose -f ${COMPOSE_FILE} ps
