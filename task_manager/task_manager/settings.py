@@ -21,53 +21,11 @@ def _get_env_bool(name: str, default: bool = False) -> bool:
     raw_value = os.getenv(name)
     if raw_value is None:
         return default
-
     return raw_value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
-
-def _load_keyvault_secrets(vault_name: str) -> dict[str, str]:
-    """Load configured secrets from Azure Key Vault.
-
-    If Key Vault is unavailable (local dev/Jenkins), return an empty dict and
-    allow environment-variable fallbacks.
-    """
-    secret_mapping = {
-        'DJANGO-SECRET-KEY': 'SECRET_KEY',
-        'DB-NAME': 'DB_NAME',
-        'DB-USER': 'DB_USER',
-        'DB-PASSWORD': 'DB_PASS',
-        'DB-HOST': 'DB_HOST',
-        'DB-PORT': 'DB_PORT',
-        'AZURE-STORAGE-CONNECTION-STRING': 'AZURE_STORAGE_CONNECTION_STRING',
-        'AZURE-ACCOUNT-NAME': 'AZURE_ACCOUNT_NAME',
-        'AZURE-ACCOUNT-KEY': 'AZURE_ACCOUNT_KEY',
-    }
-    try:
-        from azure.identity import DefaultAzureCredential
-        from azure.keyvault.secrets import SecretClient
-
-        client = SecretClient(
-            vault_url=f'https://{vault_name}.vault.azure.net',
-            credential=DefaultAzureCredential(),
-        )
-
-        loaded = {}
-        for kv_name, local_name in secret_mapping.items():
-            loaded[local_name] = client.get_secret(kv_name).value
-        return loaded
-    except Exception:
-        return {}
-
-
-VAULT_NAME = os.getenv('AZURE_VAULT_NAME')
-VAULT_SECRETS = _load_keyvault_secrets(VAULT_NAME) if VAULT_NAME else {}
-
-for key, value in VAULT_SECRETS.items():
-    if value and not os.getenv(key):
-        os.environ[key] = value
-
-SECRET_KEY = VAULT_SECRETS.get('SECRET_KEY') or os.getenv('SECRET_KEY', 'default-insecure-key')
-DEBUG = _get_env_bool('DEBUG', True)
+ENV="PROD"
+SECRET_KEY = os.getenv('SECRET_KEY', 'default-insecure-key')
+DEBUG = False
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
 
 USE_X_FORWARDED_HOST = True
@@ -142,12 +100,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'task_manager.wsgi.application'
 
-USE_AZURE_SQL = _get_env_bool('USE_AZURE_SQL', os.getenv('ENV') == 'PROD')
+USE_AZURE_SQL = _get_env_bool('USE_AZURE_SQL', ENV == 'PROD')
 
 azure_db_config = {
     'NAME': os.getenv('DB_NAME'),
     'USER': os.getenv('DB_USER'),
-    'PASSWORD': VAULT_SECRETS.get('DB_PASS') or os.getenv('DB_PASS'),
+    'PASSWORD': os.getenv('DB_PASS'),
     'HOST': os.getenv('DB_HOST'),
     'PORT': os.getenv('DB_PORT', '1433'),
 }
@@ -170,7 +128,7 @@ if USE_AZURE_SQL:
             'ENGINE': 'mssql',
             **azure_db_config,
             'OPTIONS': {
-                'driver': os.getenv('SQL_SERVER_DRIVER', 'ODBC Driver 17 for SQL Server'),
+                'driver': os.getenv('SQL_SERVER_DRIVER', 'ODBC Driver 18 for SQL Server'),
                 'extra_params': os.getenv(
                     'SQL_SERVER_EXTRA_PARAMS',
                     'Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;',
@@ -203,11 +161,9 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
-AZURE_ACCOUNT_NAME = VAULT_SECRETS.get('AZURE_ACCOUNT_NAME') or os.getenv('AZURE_ACCOUNT_NAME')
-AZURE_ACCOUNT_KEY = VAULT_SECRETS.get('AZURE_ACCOUNT_KEY') or os.getenv('AZURE_ACCOUNT_KEY')
-AZURE_CONNECTION_STRING = VAULT_SECRETS.get('AZURE_STORAGE_CONNECTION_STRING') or os.getenv(
-    'AZURE_STORAGE_CONNECTION_STRING'
-)
+AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
+AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
+AZURE_CONNECTION_STRING = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
 AZURE_MEDIA_CONTAINER = os.getenv('AZURE_MEDIA_CONTAINER', 'media')
 AZURE_STATIC_CONTAINER = os.getenv('AZURE_STATIC_CONTAINER', 'static')
 

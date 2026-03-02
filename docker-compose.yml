@@ -1,7 +1,6 @@
 x-app-env: &app-env
   ENV: PROD
   DEBUG: "False"
-  AZURE_VAULT_NAME: ${AZURE_VAULT_NAME:-}
   USE_AZURE_SQL: ${USE_AZURE_SQL:-True}
   DB_NAME: ${DB_NAME:-}
   DB_USER: ${DB_USER:-}
@@ -18,6 +17,7 @@ x-app-env: &app-env
   CELERY_RESULT_BACKEND: redis://redis:6379/0
 
 services:
+  # 1. Redis (message broker)
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -26,7 +26,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
+  # 2. Django (web)
   web:
     build:
       context: .
@@ -37,7 +37,7 @@ services:
       gunicorn --chdir /app/task_manager/task_manager --bind 0.0.0.0:8000 task_manager.wsgi:application"
     environment:
       <<: *app-env
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,4.186.40.170}
     expose:
       - "8000"
     healthcheck:
@@ -53,8 +53,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    #command: gunicorn task_manager.wsgi:application --bind 0.0.0.0:8000
-
+  # 3. Celery (background worker) 
   celery:
     build:
       context: .
@@ -68,7 +67,7 @@ services:
         condition: service_healthy
       web:
         condition: service_healthy
-
+  # 4. Nginx (reverse proxy)
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped

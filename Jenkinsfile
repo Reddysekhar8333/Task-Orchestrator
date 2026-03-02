@@ -19,7 +19,6 @@ pipeline {
     }
 
     parameters {
-        string(name: 'AZURE_VAULT_NAME', defaultValue: 'my-django-vault', description: 'Azure Key Vault name containing SECRET_KEY and DB_PASSWORD/DB-PASS secrets')
         string(name: 'ALLOWED_HOSTS', defaultValue: '*', description: 'Comma-separated Django ALLOWED_HOSTS')
     }
 
@@ -87,7 +86,7 @@ pipeline {
             steps {
                 dir("${SOURCE_DIR}") {
                     sh '''
-                        export AZURE_VAULT_NAME=${AZURE_VAULT_NAME}
+
                         export ALLOWED_HOSTS=${ALLOWED_HOSTS}
                         export USE_AZURE_SQL=${USE_AZURE_SQL:-True}
 
