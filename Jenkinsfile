@@ -86,31 +86,49 @@ pipeline {
         stage('Deploy') {
             steps {
                 dir("${SOURCE_DIR}") {
-                    sh '''
+                    withCredentials([
+                        string(credentialsId: 'task-orchestrator-secret-key', variable: 'SECRET_KEY'),
+                        string(credentialsId: 'task-orchestrator-db-host', variable: 'DB_HOST'),
+                        string(credentialsId: 'task-orchestrator-db-name', variable: 'DB_NAME'),
+                        string(credentialsId: 'task-orchestrator-db-user', variable: 'DB_USER'),
+                        string(credentialsId: 'task-orchestrator-db-pass', variable: 'DB_PASS'),
+                        string(credentialsId: 'task-orchestrator-azure-storage-connection-string', variable: 'AZURE_STORAGE_CONNECTION_STRING')
+                    ]) {
+                        sh """
+                            set -eu
 
                         export ALLOWED_HOSTS=${ALLOWED_HOSTS}
                         export USE_AZURE_SQL=${USE_AZURE_SQL:-True}
                         export NGINX_HOST_PORT=${NGINX_HOST_PORT:-8080}
-                        
-                        if docker ps --format '{{.Names}}' | grep -q '^task-orchestrator-'; then
-                          echo "Stopping existing task-orchestrator containers before redeploy..."
-                          docker-compose -f ${COMPOSE_FILE} down --remove-orphans || true
-                        fi
 
-                        if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :${NGINX_HOST_PORT}" | grep -q LISTEN; then
-                          echo "Requested host port ${NGINX_HOST_PORT} is already in use. Searching for an available port..."
-                          CANDIDATE_PORT=${NGINX_HOST_PORT}
-                          while ss -ltn "sport = :${CANDIDATE_PORT}" | grep -q LISTEN; do
-                            CANDIDATE_PORT=$((CANDIDATE_PORT + 1))
-                          done
-                          export NGINX_HOST_PORT=${CANDIDATE_PORT}
-                          echo "Using fallback host port ${NGINX_HOST_PORT} for nginx."
-                        fi
+                        REQUIRED_ENV_VARS="SECRET_KEY DB_HOST DB_NAME DB_USER DB_PASS AZURE_STORAGE_CONNECTION_STRING"
+                            for VAR_NAME in ${REQUIRED_ENV_VARS}; do
+                              VAR_VALUE=$(printenv "${VAR_NAME}" || true)
+                              if [ -z "${VAR_VALUE}" ]; then
+                                echo "ERROR: Required environment variable ${VAR_NAME} is missing or empty."
+                                echo "Ensure Jenkins Credentials are configured with the expected credential IDs."
+                                exit 1
+                              fi
+                            done
+                            
+                            if docker ps --format '{{.Names}}' | grep -q '^task-orchestrator-'; then
+                              echo "Stopping existing task-orchestrator containers before redeploy..."
+                              docker-compose -f ${COMPOSE_FILE} down --remove-orphans || true
+                            fi
 
-                        # Credentials are expected to be injected by Jenkins Global Credentials as environment variables before this deploy stage runs.
-                        docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
-                        docker-compose -f ${COMPOSE_FILE} ps
-                    '''
+                            if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :${NGINX_HOST_PORT}" | grep -q LISTEN; then
+                            echo "Requested host port ${NGINX_HOST_PORT} is already in use. Searching for an available port..."
+                            CANDIDATE_PORT=${NGINX_HOST_PORT}
+                            while ss -ltn "sport = :${CANDIDATE_PORT}" | grep -q LISTEN; do
+                                CANDIDATE_PORT=$((CANDIDATE_PORT + 1))
+                            done
+                            export NGINX_HOST_PORT=${CANDIDATE_PORT}
+                            echo "Using fallback host port ${NGINX_HOST_PORT} for nginx."
+                            fi
+
+                            docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
+                            docker-compose -f ${COMPOSE_FILE} ps
+                    """
                     echo 'Deployment successful.'
                 }
             }
