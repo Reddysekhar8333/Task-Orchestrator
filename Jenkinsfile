@@ -20,6 +20,7 @@ pipeline {
 
     parameters {
         string(name: 'ALLOWED_HOSTS', defaultValue: '*', description: 'Comma-separated Django ALLOWED_HOSTS')
+        string(name: 'NGINX_HOST_PORT', defaultValue: '8080', description: 'Host port mapped to nginx container port 80')
     }
 
     stages {
@@ -89,6 +90,7 @@ pipeline {
 
                         export ALLOWED_HOSTS=${ALLOWED_HOSTS}
                         export USE_AZURE_SQL=${USE_AZURE_SQL:-True}
+                        export NGINX_HOST_PORT=${NGINX_HOST_PORT:-8080}
                         # Credentials are expected to be injected by Jenkins Global Credentials as environment variables before this deploy stage runs.
                         docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
                         docker-compose -f ${COMPOSE_FILE} ps

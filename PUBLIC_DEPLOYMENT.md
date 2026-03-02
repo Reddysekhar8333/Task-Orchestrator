@@ -8,7 +8,7 @@ The repository already includes a Docker Compose stack with:
 - `web` (Django + Gunicorn)
 - `celery`
 - `redis`
-- `nginx` exposed on port `80`
+- `nginx` exposed on host port `80` by default (override with `NGINX_HOST_PORT` if port 80 is already in use)
 
 On your VM (Azure, AWS, GCP, or any VPS):
 
@@ -37,6 +37,9 @@ DB_PASS=<db-password>
 AZURE_STORAGE_CONNECTION_STRING=<connection-string>
 AZURE_MEDIA_CONTAINER=media
 AZURE_STATIC_CONTAINER=static
+
+# Optional: avoid host-port conflicts on machines where port 80 is already taken
+NGINX_HOST_PORT=8080
 ```
 
 Use Jenkins Global Credentials (or your CI/CD secret manager) to inject these values as environment variables at deploy time.
