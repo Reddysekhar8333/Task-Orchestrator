@@ -39,7 +39,7 @@ AZURE_MEDIA_CONTAINER=media
 AZURE_STATIC_CONTAINER=static
 ```
 
-If you use Azure Key Vault, set `AZURE_VAULT_NAME` and keep DB/storage secrets there.
+Use Jenkins Global Credentials (or your CI/CD secret manager) to inject these values as environment variables at deploy time.
 
 ## 3) Open network access safely
 

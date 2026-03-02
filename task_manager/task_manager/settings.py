@@ -1,5 +1,5 @@
 """Django settings for task_manager project."""
-
+import json
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -23,10 +23,31 @@ def _get_env_bool(name: str, default: bool = False) -> bool:
         return default
     return raw_value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
-ENV="PROD"
+def _get_allowed_hosts() -> list[str]:
+    raw_value = os.getenv('ALLOWED_HOSTS', '')
+    if not raw_value:
+        return ['localhost', '127.0.0.1']
+
+    # Support multiple formats commonly used in CI/CD credentials:
+    # - "a.com,b.com"
+    # - "a.com b.com"
+    # - '["a.com", "b.com"]'
+    raw_value = raw_value.strip()
+    if raw_value.startswith('['):
+        try:
+            loaded_hosts = json.loads(raw_value)
+            if isinstance(loaded_hosts, list):
+                return [str(host).strip() for host in loaded_hosts if str(host).strip()]
+        except json.JSONDecodeError:
+            pass
+
+    normalized_value = raw_value.replace(';', ',').replace('\n', ',').replace(' ', ',')
+    return [host.strip().strip("'\"") for host in normalized_value.split(',') if host.strip().strip("'\"")]
+
+ENV = os.getenv('ENV', 'PROD').upper()
 SECRET_KEY = os.getenv('SECRET_KEY', 'default-insecure-key')
-DEBUG = False
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
+DEBUG = _get_env_bool('DEBUG', ENV != 'PROD')
+ALLOWED_HOSTS = _get_allowed_hosts()
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -105,7 +126,7 @@ USE_AZURE_SQL = _get_env_bool('USE_AZURE_SQL', ENV == 'PROD')
 azure_db_config = {
     'NAME': os.getenv('DB_NAME'),
     'USER': os.getenv('DB_USER'),
-    'PASSWORD': os.getenv('DB_PASS'),
+    'PASSWORD': os.getenv('DB_PASS') or os.getenv('DB_PASSWORD'),
     'HOST': os.getenv('DB_HOST'),
     'PORT': os.getenv('DB_PORT', '1433'),
 }

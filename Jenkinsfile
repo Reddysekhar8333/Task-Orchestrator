@@ -89,13 +89,7 @@ pipeline {
 
                         export ALLOWED_HOSTS=${ALLOWED_HOSTS}
                         export USE_AZURE_SQL=${USE_AZURE_SQL:-True}
-
-                        # For Azure VM with Managed Identity, this enables Key Vault auth for DefaultAzureCredential.
-                        if command -v az >/dev/null 2>&1; then
-                          az login --identity || true
-                        else
-                          echo "Azure CLI not found; continuing without az login."
-                        fi
+                        # Credentials are expected to be injected by Jenkins Global Credentials as environment variables before this deploy stage runs.
                         docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
                         docker-compose -f ${COMPOSE_FILE} ps
                     '''

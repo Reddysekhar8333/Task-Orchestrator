@@ -1,6 +1,7 @@
 x-app-env: &app-env
   ENV: PROD
   DEBUG: "False"
+  SECRET_KEY: ${SECRET_KEY:-default-insecure-key}
   USE_AZURE_SQL: ${USE_AZURE_SQL:-True}
   DB_NAME: ${DB_NAME:-}
   DB_USER: ${DB_USER:-}
