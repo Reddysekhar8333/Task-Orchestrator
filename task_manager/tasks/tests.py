@@ -52,3 +52,13 @@ class TaskOrchestratorTests(APITestCase):
         url = reverse('task-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    def test_by_status_endpoint_filters_results(self):
+        Task.objects.create(user=self.user, title='Pending Task', status='PENDING')
+        Task.objects.create(user=self.user, title='Completed Task', status='COMPLETED')
+
+        url = reverse('task-by-status')
+        response = self.client.get(url, {'status': 'COMPLETED'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['status'], 'COMPLETED')

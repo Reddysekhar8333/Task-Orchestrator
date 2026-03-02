@@ -108,12 +108,16 @@ pipeline {
             steps {
                 dir("${SOURCE_DIR}") {
                     withCredentials([
-                        string(credentialsId: 'task-orchestrator-secret-key', variable: 'SECRET_KEY'),
-                        string(credentialsId: 'task-orchestrator-db-host', variable: 'DB_HOST'),
-                        string(credentialsId: 'task-orchestrator-db-name', variable: 'DB_NAME'),
-                        string(credentialsId: 'task-orchestrator-db-user', variable: 'DB_USER'),
-                        string(credentialsId: 'task-orchestrator-db-pass', variable: 'DB_PASS'),
-                        string(credentialsId: 'task-orchestrator-azure-storage-connection-string', variable: 'AZURE_STORAGE_CONNECTION_STRING')
+                        string(credentialsId: 'SECRET_KEY', variable: 'SECRET_KEY'),
+                        string(credentialsId: 'DB_HOST', variable: 'DB_HOST'),
+                        string(credentialsId: 'DB_NAME', variable: 'DB_NAME'),
+                        string(credentialsId: 'DB_USER', variable: 'DB_USER'),
+                        string(credentialsId: 'DB_PASS', variable: 'DB_PASS'),
+                        string(credentialsId: 'DB_PORT', variable: 'DB_PORT'),
+                        string(credentialsId: 'AZURE_STORAGE_CONNECTION_STRING', variable: 'AZURE_STORAGE_CONNECTION_STRING'),
+                        string(credentialsId: 'USE_AZURE_SQL', variable: 'USE_AZURE_SQL'),
+                        string(credentialsId: 'AZURE_ACCOUNT_NAME', variable: 'AZURE_ACCOUNT_NAME'),
+                        string(credentialsId: 'AZURE_ACCOUNT_KEY', variable: 'AZURE_ACCOUNT_KEY')
                     ]) {
                         sh '''
                             set -eu

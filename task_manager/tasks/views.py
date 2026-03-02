@@ -68,7 +68,11 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def by_status(self, request):
-        serializer = self.get_serializer(self.get_queryset(), many=True)
+        status_filter = request.query_params.get('status')
+        queryset = self.get_queryset()
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     def perform_create(self, serializer):
