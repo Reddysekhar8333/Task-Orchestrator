@@ -144,15 +144,31 @@ WSGI_APPLICATION = 'task_manager.wsgi.application'
 
 USE_AZURE_SQL = _get_env_bool('USE_AZURE_SQL', os.getenv('ENV') == 'PROD')
 
+azure_db_config = {
+    'NAME': os.getenv('DB_NAME'),
+    'USER': os.getenv('DB_USER'),
+    'PASSWORD': VAULT_SECRETS.get('DB_PASS') or os.getenv('DB_PASS'),
+    'HOST': os.getenv('DB_HOST'),
+    'PORT': os.getenv('DB_PORT', '1433'),
+}
+
+required_azure_db_values = {'NAME', 'USER', 'PASSWORD', 'HOST'}
+missing_azure_db_values = [
+    key for key in required_azure_db_values if not azure_db_config.get(key)
+]
+
+if USE_AZURE_SQL and missing_azure_db_values:
+    print(
+        'USE_AZURE_SQL is enabled but missing database settings '
+        f"({', '.join(sorted(missing_azure_db_values))}). Falling back to sqlite3."
+    )
+    USE_AZURE_SQL = False
+
 if USE_AZURE_SQL:
     DATABASES = {
         'default': {
             'ENGINE': 'mssql',
-            'NAME': VAULT_SECRETS.get('DB_NAME') or os.getenv('DB_NAME'),
-            'USER': VAULT_SECRETS.get('DB_USER') or os.getenv('DB_USER'),
-            'PASSWORD': VAULT_SECRETS.get('DB_PASS') or os.getenv('DB_PASS'),
-            'HOST': VAULT_SECRETS.get('DB_HOST') or os.getenv('DB_HOST'),
-            'PORT': VAULT_SECRETS.get('DB_PORT') or os.getenv('DB_PORT', '1433'),
+            **azure_db_config,
             'OPTIONS': {
                 'driver': os.getenv('SQL_SERVER_DRIVER', 'ODBC Driver 17 for SQL Server'),
                 'extra_params': os.getenv(
