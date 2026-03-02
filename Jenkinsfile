@@ -56,7 +56,18 @@ pipeline {
 
         stage('Build Containers') {
             steps {
-                sh 'docker-compose -f ${COMPOSE_FILE} build --pull'
+                sh '''
+                    set -eu
+                    if command -v docker-compose >/dev/null 2>&1; then
+                      COMPOSE_CMD='docker-compose'
+                    elif docker compose version >/dev/null 2>&1; then
+                      COMPOSE_CMD='docker compose'
+                    else
+                      echo 'ERROR: Neither docker-compose nor docker compose is available on this Jenkins agent.' >&2
+                      exit 1
+                    fi
+                    ${COMPOSE_CMD} -f ${COMPOSE_FILE} build --pull
+                '''
             }
         }
 
@@ -64,7 +75,17 @@ pipeline {
             steps {
                 dir("${SOURCE_DIR}") {
                     sh '''
-                        docker-compose -f ${COMPOSE_FILE} run --rm \
+                    set -eu
+                        if command -v docker-compose >/dev/null 2>&1; then
+                          COMPOSE_CMD='docker-compose'
+                        elif docker compose version >/dev/null 2>&1; then
+                          COMPOSE_CMD='docker compose'
+                        else
+                          echo 'ERROR: Neither docker-compose nor docker compose is available on this Jenkins agent.' >&2
+                          exit 1
+                        fi
+
+                        ${COMPOSE_CMD} -f ${COMPOSE_FILE} run --rm \
                         -e ENV=CI \
                         -e DEBUG=False \
                         -e SECRET_KEY=jenkins_test_secret \
@@ -97,9 +118,18 @@ pipeline {
                         sh '''
                             set -eu
 
-                        export ALLOWED_HOSTS=${ALLOWED_HOSTS}
-                        export USE_AZURE_SQL=${USE_AZURE_SQL:-True}
-                        export NGINX_HOST_PORT=${NGINX_HOST_PORT:-8080}
+                            if command -v docker-compose >/dev/null 2>&1; then
+                              COMPOSE_CMD='docker-compose'
+                            elif docker compose version >/dev/null 2>&1; then
+                              COMPOSE_CMD='docker compose'
+                            else
+                              echo 'ERROR: Neither docker-compose nor docker compose is available on this Jenkins agent.' >&2
+                              exit 1
+                            fi
+
+                        export ALLOWED_HOSTS="${ALLOWED_HOSTS:-*}"
+                        export USE_AZURE_SQL="${USE_AZURE_SQL:-True}"
+                        export NGINX_HOST_PORT="${NGINX_HOST_PORT:-8080}"
 
                         REQUIRED_ENV_VARS="SECRET_KEY DB_HOST DB_NAME DB_USER DB_PASS AZURE_STORAGE_CONNECTION_STRING"
                             for VAR_NAME in ${REQUIRED_ENV_VARS}; do
@@ -113,7 +143,7 @@ pipeline {
                             
                             if docker ps --format '{{.Names}}' | grep -q '^task-orchestrator-'; then
                               echo "Stopping existing task-orchestrator containers before redeploy..."
-                              docker-compose -f ${COMPOSE_FILE} down --remove-orphans || true
+                              ${COMPOSE_CMD} -f ${COMPOSE_FILE} down --remove-orphans || true
                             fi
 
                             if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :${NGINX_HOST_PORT}" | grep -q LISTEN; then
@@ -126,8 +156,17 @@ pipeline {
                             echo "Using fallback host port ${NGINX_HOST_PORT} for nginx."
                             fi
 
-                            docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
-                            docker-compose -f ${COMPOSE_FILE} ps
+                            ${COMPOSE_CMD} -f ${COMPOSE_FILE} up -d --remove-orphans
+                            ${COMPOSE_CMD} -f ${COMPOSE_FILE} ps
+
+                            WEB_CONTAINER_ID=$(${COMPOSE_CMD} -f ${COMPOSE_FILE} ps -q web)
+                            if [ -n "${WEB_CONTAINER_ID}" ]; then
+                              if ! docker inspect --format='{{json .State.Health.Status}}' "${WEB_CONTAINER_ID}" | grep -q '"healthy"'; then
+                                echo 'ERROR: web service is not healthy after deploy. Recent logs:' >&2
+                                ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs --tail=120 web >&2 || true
+                                exit 1
+                              fi
+                            fi
                     '''
                     echo 'Deployment successful.'
                     }
@@ -138,7 +177,15 @@ pipeline {
     post {
         always {
             dir("${SOURCE_DIR}") {
-                sh 'docker-compose -f ${COMPOSE_FILE} ps || true'
+                sh '''
+                    set +e
+                    if command -v docker-compose >/dev/null 2>&1; then
+                      docker-compose -f ${COMPOSE_FILE} ps
+                    elif docker compose version >/dev/null 2>&1; then
+                      docker compose -f ${COMPOSE_FILE} ps
+                    fi
+                    true
+                '''
             }
         }
         success {
