@@ -94,7 +94,7 @@ pipeline {
                         string(credentialsId: 'task-orchestrator-db-pass', variable: 'DB_PASS'),
                         string(credentialsId: 'task-orchestrator-azure-storage-connection-string', variable: 'AZURE_STORAGE_CONNECTION_STRING')
                     ]) {
-                        sh """
+                        sh '''
                             set -eu
 
                         export ALLOWED_HOSTS=${ALLOWED_HOSTS}
@@ -128,7 +128,7 @@ pipeline {
 
                             docker-compose -f ${COMPOSE_FILE} up -d --remove-orphans
                             docker-compose -f ${COMPOSE_FILE} ps
-                    """
+                    '''
                     echo 'Deployment successful.'
                 }
             }
