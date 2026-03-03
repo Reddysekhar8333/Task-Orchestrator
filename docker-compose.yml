@@ -36,7 +36,7 @@ services:
     restart: unless-stopped
     command: >
       sh -c "python task_manager/manage.py migrate --fake-initial &&
-      gunicorn --chdir /app/task_manager/task_manager --bind 0.0.0.0:8000 task_manager.wsgi:application"
+      gunicorn --chdir /app/task_manager --bind 0.0.0.0:8000 task_manager.wsgi:application"
     environment:
       <<: *app-env
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,4.186.40.170}
@@ -61,7 +61,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: celery --workdir /app/task_manager/task_manager -A task_manager worker --loglevel=info
+    command: celery --workdir /app/task_manager -A task_manager worker --loglevel=info
     environment:
       <<: *app-env
     depends_on:
