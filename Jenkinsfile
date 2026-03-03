@@ -165,8 +165,24 @@ pipeline {
 
                             WEB_CONTAINER_ID=$(${COMPOSE_CMD} -f ${COMPOSE_FILE} ps -q web)
                             if [ -n "${WEB_CONTAINER_ID}" ]; then
+                                ATTEMPTS=36
+                                SLEEP_SECS=5
+                                while [ ${ATTEMPTS} -gt 0 ]; do
+                                    HEALTH_STATUS=$(docker inspect --format='{{json .State.Health.Status}}' "${WEB_CONTAINER_ID}" | tr -d '"')
+                                    if [ "${HEALTH_STATUS}" = "healthy" ]; then
+                                    echo 'Web service is healthy.'
+                                    break
+                                    fi
+                                    if [ "${HEALTH_STATUS}" = "unhealthy" ]; then
+                                    echo 'ERROR: web service became unhealthy during deploy. Recent logs:' >&2
+                                    ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs --tail=120 web >&2 || true
+                                    exit 1
+                                    fi
+                                    ATTEMPTS=$((ATTEMPTS - 1))
+                                    sleep ${SLEEP_SECS}
+                                done
                               if ! docker inspect --format='{{json .State.Health.Status}}' "${WEB_CONTAINER_ID}" | grep -q '"healthy"'; then
-                                echo 'ERROR: web service is not healthy after deploy. Recent logs:' >&2
+                                echo 'ERROR: web service did not become healthy in time. Recent logs:' >&2
                                 ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs --tail=120 web >&2 || true
                                 exit 1
                               fi

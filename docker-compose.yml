@@ -35,7 +35,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     command: >
-      sh -c "python task_manager/manage.py migrate &&
+      sh -c "python task_manager/manage.py migrate --fake-initial &&
       gunicorn --chdir /app/task_manager/task_manager --bind 0.0.0.0:8000 task_manager.wsgi:application"
     environment:
       <<: *app-env
