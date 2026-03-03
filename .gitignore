@@ -3,3 +3,4 @@ venv/
 db.sqlite3
 __pycache__/
 migrations
+z_learnings_of_project

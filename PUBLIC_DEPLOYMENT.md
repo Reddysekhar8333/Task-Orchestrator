@@ -1,6 +1,24 @@
 # Making Task-Orchestrator accessible to everyone
 
 Use this checklist to turn your local setup into a public production deployment.
+### If you see `HYT00 Login timeout expired`
+
+That error means the Django container cannot reach SQL Server. Check these in order:
+
+1. **Make sure Azure SQL is actually intended**
+   - For local/dev without Azure SQL, set `USE_AZURE_SQL=False` in `.env`.
+2. **Verify host and credentials**
+   - `DB_HOST` should be your Azure SQL server FQDN (for example, `myserver.database.windows.net`).
+   - `DB_PORT` should be `1433`.
+   - Confirm `DB_NAME`, `DB_USER`, `DB_PASS` are correct.
+3. **Allow network access from your VM**
+   - In Azure SQL Server firewall, add your VM public outbound IP.
+   - If using private endpoint/VNet integration, ensure the VM can resolve and route to that private endpoint.
+4. **Test connectivity from the host**
+   - Example: `nc -vz <azure-sql-host> 1433`
+   - If this fails, it's a network/firewall/routing problem (not Django).
+5. **ODBC Driver 18 TLS requirements**
+   - Driver 18 enforces encryption by default. Keep SSL parameters consistent with your SQL policy.
 
 ## 1) Run the app on a public server
 
