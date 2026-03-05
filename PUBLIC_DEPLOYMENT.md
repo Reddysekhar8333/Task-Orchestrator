@@ -150,7 +150,7 @@ curl -I http://<your-domain-or-vm-ip>/
 
 - `docker-compose.yml` expects an nginx config at `nginx/default.conf`.
 - This repository now includes a baseline reverse-proxy config there.
-- Django reads `ALLOWED_HOSTS` from environment variables, so set it explicitly for your domain/IP.
+- - Django reads `ALLOWED_HOSTS` from environment variables, so set it explicitly for your domain/IP.
 
 
 ## 10) Troubleshooting: intermittent `502 Bad Gateway` after container restarts
@@ -163,4 +163,27 @@ After pulling this change, redeploy/restart nginx:
 
 ```bash
 docker compose up -d --build nginx web
+```
+
+
+## 11) Troubleshooting: `ERR_CONNECTION_TIMED_OUT` on `http://<ip>:8081`
+
+If `curl -I http://127.0.0.1:8081/` returns `200` on the VM but external requests to `http://<public-ip>:8081/` time out, the app is healthy and the issue is network exposure.
+
+Check in order:
+
+1. **Cloud NSG / firewall rule**
+   - Add inbound TCP rule for the exact published host port (for example `8081`).
+2. **Single compose project**
+   - Avoid running duplicate stacks (for example both `task-orchestrator-*` and `task_orchestrator_*`).
+   - This repository now pins compose project name to `task-orchestrator` to keep container names stable.
+3. **Local listener check**
+   - `sudo ss -ltnp | grep <port>` should show docker-proxy listening on the published host port.
+
+Useful checks:
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+curl -I http://127.0.0.1:<published-port>/
+curl -I http://<public-ip>:<published-port>/
 ```

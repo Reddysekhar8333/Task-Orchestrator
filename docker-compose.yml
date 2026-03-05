@@ -1,3 +1,5 @@
+name: task-orchestrator
+
 x-app-env: &app-env
   ENV: PROD
   DEBUG: "False"
