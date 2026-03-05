@@ -151,3 +151,16 @@ curl -I http://<your-domain-or-vm-ip>/
 - `docker-compose.yml` expects an nginx config at `nginx/default.conf`.
 - This repository now includes a baseline reverse-proxy config there.
 - Django reads `ALLOWED_HOSTS` from environment variables, so set it explicitly for your domain/IP.
+
+
+## 10) Troubleshooting: intermittent `502 Bad Gateway` after container restarts
+
+If nginx starts fine but later begins returning `502 Bad Gateway`, your upstream DNS may be stale after the `web` container is recreated with a new IP.
+
+This repository now configures nginx to re-resolve Docker service DNS (`resolver 127.0.0.11`) and proxies through a variable-based upstream, which prevents stale-IP 502s.
+
+After pulling this change, redeploy/restart nginx:
+
+```bash
+docker compose up -d --build nginx web
+```
