@@ -99,6 +99,20 @@ curl -i https://your-domain.com/api/
 
 Also test login and authenticated task APIs with JWT.
 
+### Shareable URL format for end users
+
+Once deployed, send users one of these URLs (based on your published nginx host port):
+
+- If `NGINX_HOST_PORT` is default (`80`): `http://<your-domain-or-public-ip>/`
+- If `NGINX_HOST_PORT` is custom (for example `8081`): `http://<your-domain-or-public-ip>:8081/`
+
+In this repository, the root URL (`/`) serves the browser console UI and `/api/...` serves REST endpoints.
+
+Examples:
+
+- Console UI: `http://<your-domain-or-public-ip>/`
+- API base URL for clients/Postman: `http://<your-domain-or-public-ip>/api/`
+
 ## 8) Keep it reliable
 
 - Add health checks/uptime monitoring
