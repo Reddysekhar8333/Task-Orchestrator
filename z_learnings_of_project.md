@@ -92,3 +92,7 @@ BEGIN CATCH
     THROW;
 END CATCH;
 ```
+
+### port collisions
+What’s happening?
+Earlier, your Jenkins pipeline mentioned that it was deploying your application. Usually, when a Jenkins job "takes over" a port or starts a Docker container that binds to 8080, and then the Jenkins service itself tries to restart, they fight over the same "socket."

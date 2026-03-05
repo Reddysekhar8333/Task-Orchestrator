@@ -105,6 +105,45 @@ Also test login and authenticated task APIs with JWT.
 - Ship logs to a centralized system
 - Keep CI/CD (Jenkins) deploying tested images only
 
+## 9) Troubleshooting: `502 Bad Gateway` with Jenkins on the same VM
+
+Port mapping in this repository is:
+- `web` (Django/Gunicorn) listens on container port `8000`.
+- `nginx` listens on container port `80` and is published as `${NGINX_HOST_PORT:-80}:80`.
+
+So by default, app nginx uses host port `80` (not `8080`).
+A conflict with Jenkins on `8080` only occurs if you explicitly set:
+
+```env
+NGINX_HOST_PORT=8080
+```
+
+If Jenkins logs show:
+- `Failed to bind to 0.0.0.0:8080`
+- `java.net.BindException: Address already in use`
+
+then something is already listening on host port `8080`.
+
+Check listeners:
+
+```bash
+sudo lsof -iTCP:8080 -sTCP:LISTEN -n -P
+sudo ss -ltnp 'sport = :8080'
+```
+
+Resolution options:
+- Keep Jenkins on `8080` and publish app nginx on a different host port (for example `NGINX_HOST_PORT=8081`), **or**
+- Keep app nginx on `8080` and run Jenkins on another port (for example `8081` or `9090`).
+
+After changes, restart services and validate:
+
+```bash
+curl -I http://127.0.0.1:<jenkins-or-nginx-port>
+curl -I http://<your-domain-or-vm-ip>/
+```
+
+
+
 ---
 
 ## Notes specific to this repository
