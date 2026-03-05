@@ -19,7 +19,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'ALLOWED_HOSTS', defaultValue: '', description: 'Required. Comma-separated Django ALLOWED_HOSTS (for example: your-domain.com,www.your-domain.com,4.186.40.170)')
+        string(name: 'ALLOWED_HOSTS', defaultValue: '', description: 'Optional override. Comma-separated Django ALLOWED_HOSTS (for example: your-domain.com,www.your-domain.com,4.186.40.170)')
         string(name: 'NGINX_HOST_PORT', defaultValue: '8081', description: 'Host port mapped to nginx container port 80')
     }
 
@@ -149,9 +149,20 @@ pipeline {
                               echo "Stopping existing task-orchestrator containers before redeploy..."
                               ${COMPOSE_CMD} -f ${COMPOSE_FILE} down --remove-orphans || true
                             fi
-                            
-                            if [ -z "${ALLOWED_HOSTS}" ] || [ "${ALLOWED_HOSTS}" = "*" ]; then
-                              echo "ERROR: ALLOWED_HOSTS must be explicitly set (not empty and not '*')." >&2
+
+                            if [ -z "${ALLOWED_HOSTS}" ]; then
+                              PRIMARY_HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+                              ALLOWED_HOSTS="localhost,127.0.0.1"
+                              if [ -n "${PRIMARY_HOST_IP}" ]; then
+                                ALLOWED_HOSTS="${ALLOWED_HOSTS},${PRIMARY_HOST_IP}"
+                              fi
+                              export ALLOWED_HOSTS
+                              echo "ALLOWED_HOSTS was empty. Falling back to: ${ALLOWED_HOSTS}" >&2
+                              echo "Set the ALLOWED_HOSTS parameter to your public domain/IP for production." >&2
+                            fi
+
+                            if [ "${ALLOWED_HOSTS}" = "*" ]; then
+                              echo "ERROR: ALLOWED_HOSTS cannot be '*'." >&2
                               echo "Example: ALLOWED_HOSTS=your-domain.com,www.your-domain.com,4.186.40.170" >&2
                               exit 1
                             fi
