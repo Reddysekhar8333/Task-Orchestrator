@@ -3,6 +3,7 @@ import json
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 
@@ -23,11 +24,29 @@ def _get_env_bool(name: str, default: bool = False) -> bool:
         return default
     return raw_value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
+def _sanitize_host_entry(host: str) -> str:
+    normalized = host.strip().strip("'\"")
+    if not normalized:
+        return ''
+    # Allow explicit wildcard entries.
+    if normalized == '*':
+        return normalized
+    # Normalize values accidentally provided as full URLs so they can still be
+    # used as ALLOWED_HOSTS entries (e.g. http://example.com:8081/).
+    if '://' in normalized:
+        normalized = urlsplit(normalized).hostname or ''
+        return normalized.strip()
+    # Strip path/query fragments when hosts are pasted with a trailing route.
+    normalized = normalized.split('/', 1)[0].split('?', 1)[0]
+    # Remove host port if provided for IPv4 or hostnames.
+    if ':' in normalized and not normalized.startswith('['):
+        normalized = normalized.split(':', 1)[0]
+    return normalized.strip()
+
 def _get_allowed_hosts() -> list[str]:
     raw_value = os.getenv('ALLOWED_HOSTS', '')
     if not raw_value:
         return ['localhost', '127.0.0.1']
-
     # Support multiple formats commonly used in CI/CD credentials:
     # - "a.com,b.com"
     # - "a.com b.com"
@@ -37,12 +56,20 @@ def _get_allowed_hosts() -> list[str]:
         try:
             loaded_hosts = json.loads(raw_value)
             if isinstance(loaded_hosts, list):
-                return [str(host).strip() for host in loaded_hosts if str(host).strip()]
+                return [
+                    sanitized_host
+                    for host in loaded_hosts
+                    if (sanitized_host := _sanitize_host_entry(str(host)))
+                ]
         except json.JSONDecodeError:
             pass
 
     normalized_value = raw_value.replace(';', ',').replace('\n', ',').replace(' ', ',')
-    return [host.strip().strip("'\"") for host in normalized_value.split(',') if host.strip().strip("'\"")]
+    return [
+        sanitized_host
+        for host in normalized_value.split(',')
+        if (sanitized_host := _sanitize_host_entry(host))
+    ]
 
 ENV = os.getenv('ENV', 'PROD').upper()
 SECRET_KEY = os.getenv('SECRET_KEY', 'default-insecure-key')
