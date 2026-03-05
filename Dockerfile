@@ -32,6 +32,4 @@ COPY . .
 EXPOSE 8000
 
 # Run migrations and start the application
-CMD ["sh", "-c", "if [ -f task_manager/manage.py ]; then python task_manager/manage.py migrate --fake-initial && gunicorn --chdir /app/task_manager/task_manager --bind 0.0.0.0:8000 task_manager.wsgi:application;
-                  elif [ -f manage.py ]; then python manage.py migrate --fake-initial && gunicorn --chdir /app/task_manager/task_manager --bind 0.0.0.0:8000 task_manager.wsgi:application; 
-                  else echo 'manage.py not found' >&2; exit 1; fi"]
+CMD ["sh", "-c", "if [ -f task_manager/manage.py ]; then python task_manager/manage.py migrate --fake-initial && gunicorn --chdir /app/task_manager/task_manager --bind 0.0.0.0:8000 task_manager.wsgi:application; elif [ -f manage.py ]; then python manage.py migrate --fake-initial && gunicorn --chdir /app/task_manager/task_manager --bind 0.0.0.0:8000 task_manager.wsgi:application; else echo 'manage.py not found' >&2; exit 1; fi"]
