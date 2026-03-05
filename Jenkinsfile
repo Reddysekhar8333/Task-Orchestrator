@@ -19,7 +19,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'ALLOWED_HOSTS', defaultValue: '', description: 'Optional override. Comma-separated Django ALLOWED_HOSTS (for example: your-domain.com,www.your-domain.com,4.186.40.170)')
+        string(name: 'ALLOWED_HOSTS', defaultValue: '4.186.40.170,localhost,127.0.0.1', description: 'Optional override. Comma-separated Django ALLOWED_HOSTS (for example: your-domain.com,www.your-domain.com,4.186.40.170)')
         string(name: 'NGINX_HOST_PORT', defaultValue: '8081', description: 'Host port mapped to nginx container port 80')
     }
 
