@@ -19,8 +19,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'ALLOWED_HOSTS', defaultValue: '*', description: 'Comma-separated Django ALLOWED_HOSTS')
-        string(name: 'NGINX_HOST_PORT', defaultValue: '8080', description: 'Host port mapped to nginx container port 80')
+        string(name: 'ALLOWED_HOSTS', defaultValue: '', description: 'Required. Comma-separated Django ALLOWED_HOSTS (for example: your-domain.com,www.your-domain.com,4.186.40.170)')
+        string(name: 'NGINX_HOST_PORT', defaultValue: '8081', description: 'Host port mapped to nginx container port 80')
     }
 
     stages {
@@ -131,9 +131,9 @@ pipeline {
                               exit 1
                             fi
 
-                        export ALLOWED_HOSTS="${ALLOWED_HOSTS:-*}"
+                        export ALLOWED_HOSTS="${ALLOWED_HOSTS:-}"
                         export USE_AZURE_SQL="${USE_AZURE_SQL:-True}"
-                        export NGINX_HOST_PORT="${NGINX_HOST_PORT:-8080}"
+                        export NGINX_HOST_PORT="${NGINX_HOST_PORT:-8081}"
 
                         REQUIRED_ENV_VARS="SECRET_KEY DB_HOST DB_NAME DB_USER DB_PASS AZURE_STORAGE_CONNECTION_STRING"
                             for VAR_NAME in ${REQUIRED_ENV_VARS}; do
@@ -149,15 +149,17 @@ pipeline {
                               echo "Stopping existing task-orchestrator containers before redeploy..."
                               ${COMPOSE_CMD} -f ${COMPOSE_FILE} down --remove-orphans || true
                             fi
+                            
+                            if [ -z "${ALLOWED_HOSTS}" ] || [ "${ALLOWED_HOSTS}" = "*" ]; then
+                              echo "ERROR: ALLOWED_HOSTS must be explicitly set (not empty and not '*')." >&2
+                              echo "Example: ALLOWED_HOSTS=your-domain.com,www.your-domain.com,4.186.40.170" >&2
+                              exit 1
+                            fi
 
                             if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :${NGINX_HOST_PORT}" | grep -q LISTEN; then
-                            echo "Requested host port ${NGINX_HOST_PORT} is already in use. Searching for an available port..."
-                            CANDIDATE_PORT=${NGINX_HOST_PORT}
-                            while ss -ltn "sport = :${CANDIDATE_PORT}" | grep -q LISTEN; do
-                                CANDIDATE_PORT=$((CANDIDATE_PORT + 1))
-                            done
-                            export NGINX_HOST_PORT=${CANDIDATE_PORT}
-                            echo "Using fallback host port ${NGINX_HOST_PORT} for nginx."
+                            echo "ERROR: Requested host port ${NGINX_HOST_PORT} is already in use." >&2
+                              echo "Set NGINX_HOST_PORT to a free port and open that port in your NSG/firewall." >&2
+                              exit 1
                             fi
 
                             ${COMPOSE_CMD} -f ${COMPOSE_FILE} up -d --remove-orphans

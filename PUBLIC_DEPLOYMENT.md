@@ -67,6 +67,7 @@ Use Jenkins Global Credentials (or your CI/CD secret manager) to inject these va
 On your cloud firewall / NSG:
 - Allow inbound `80` (HTTP)
 - Allow inbound `443` (HTTPS) after TLS is enabled
+- If you set `NGINX_HOST_PORT` to a non-default port (for example `8081`), you must also allow that TCP port in your cloud NSG/firewall
 - Keep DB ports private (do not expose Azure SQL publicly to the world)
 
 ## 4) Point a domain to your server
