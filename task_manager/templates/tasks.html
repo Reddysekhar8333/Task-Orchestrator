@@ -1,0 +1,153 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Task Orchestrator | User Tasks</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="{% static 'css/theme.css' %}" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="page-shell">
+        <nav class="navbar top-nav">
+            <div class="container py-2 d-flex align-items-center justify-content-between">
+                <div class="d-flex gap-2">
+                    <a href="/" class="btn btn-sm btn-outline-light">Home</a>
+                    <a href="/dashboard/" class="btn btn-sm btn-outline-light">Dashboard</a>
+                </div>
+                <button class="btn btn-sm glow-btn" data-action="logout">Logout</button>
+            </div>
+        </nav>
+
+        <main class="container py-4">
+            <div class="row g-3">
+                <div class="col-lg-4 d-flex">
+                    <section class="panel p-4 w-100">
+                        <h1 class="h5 mb-3">Create Task</h1>
+                        <form id="createTaskForm" class="d-flex flex-column gap-2">
+                            <input class="form-control" id="taskTitle" placeholder="Task title" required />
+                            <textarea class="form-control" id="taskDescription" rows="3"
+                                placeholder="Task description"></textarea>
+                            <select class="form-select" id="taskType">
+                                <option value="DATA_PROCESSING">Data Processing</option>
+                                <option value="FILE_CONVERSION">File Conversion</option>
+                                <option value="IMAGE_PROCESSING">Image Processing</option>
+                                <option value="REPORT_GENERATION">Report Generation</option>
+                                <option value="EMAIL_NOTIFICATION">Email Notification</option>
+                            </select>
+                            <select class="form-select" id="taskPriority">
+                                <option value="1">Low Priority</option>
+                                <option value="2" selected>Medium Priority</option>
+                                <option value="3">High Priority</option>
+                                <option value="4">Critical Priority</option>
+                            </select>
+                            <button class="btn glow-btn mt-2" type="submit">Create Task</button>
+                        </form>
+                    </section>
+                </div>
+
+                <div class="col-lg-8 d-flex">
+                    <section class="panel p-4 w-100">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                            <h2 class="h5 mb-0">Your Tasks</h2>
+                            <div class="d-flex gap-2">
+                                <select id="statusFilter" class="form-select form-select-sm">
+                                    <option value="">All statuses</option>
+                                    <option value="PENDING">Pending</option>
+                                    <option value="PROCESSING">Processing</option>
+                                    <option value="COMPLETED">Completed</option>
+                                    <option value="FAILED">Failed</option>
+                                    <option value="CANCELLED">Cancelled</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-light" id="refreshTasks">Refresh</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Type</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="taskTableBody"></tbody>
+                            </table>
+                        </div>
+                        <pre id="tasksResponse" class="mt-3 mb-0">Loading tasks...</pre>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{% static 'js/app.js' %}"></script>
+    <script>
+        authGuard();
+        bindLogout();
+
+        const taskTableBody = document.getElementById('taskTableBody');
+        const tasksResponse = document.getElementById('tasksResponse');
+
+        function renderTasks(tasks) {
+            taskTableBody.innerHTML = tasks.map((task) => `
+                <tr>
+                    <td>${task.title}</td>
+                    <td>${task.task_type}</td>
+                    <td>${task.priority}</td>
+                    <td><span class="status-pill status-${task.status}">${task.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-light" onclick="cancelTask('${task.id}')">Cancel</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="text-center" style="color: var(--text-muted);">No tasks found.</td></tr>';
+        }
+
+        async function fetchTasks() {
+            const status = document.getElementById('statusFilter').value;
+            const query = status ? `?status=${status}` : '';
+            const { response, payload } = await apiRequest(`/tasks/${query}`);
+            tasksResponse.textContent = JSON.stringify({ status: response.status, count: payload.length || 0 }, null, 2);
+            if (response.ok) renderTasks(payload);
+        }
+
+        async function cancelTask(taskId) {
+            const { response, payload } = await apiRequest(`/tasks/${taskId}/cancel/`, { method: 'POST' });
+            tasksResponse.textContent = JSON.stringify({ status: response.status, payload }, null, 2);
+            fetchTasks();
+        }
+
+        document.getElementById('createTaskForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const body = {
+                title: document.getElementById('taskTitle').value.trim(),
+                description: document.getElementById('taskDescription').value.trim(),
+                task_type: document.getElementById('taskType').value,
+                priority: Number(document.getElementById('taskPriority').value),
+            };
+
+            const { response, payload } = await apiRequest('/tasks/', {
+                method: 'POST',
+                body: JSON.stringify(body),
+            });
+
+            tasksResponse.textContent = JSON.stringify({ status: response.status, payload }, null, 2);
+            if (response.ok) {
+                event.target.reset();
+                fetchTasks();
+            }
+        });
+
+        document.getElementById('refreshTasks').addEventListener('click', fetchTasks);
+        document.getElementById('statusFilter').addEventListener('change', fetchTasks);
+
+        fetchTasks();
+    </script>
+</body>
+
+</html>

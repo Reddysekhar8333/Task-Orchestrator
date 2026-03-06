@@ -1,0 +1,98 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Task Orchestrator | Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="{% static 'css/theme.css' %}" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="page-shell">
+        <nav class="navbar top-nav">
+            <div class="container py-2 d-flex justify-content-between align-items-center">
+                <div class="d-flex gap-2">
+                    <a href="/" class="btn btn-sm btn-outline-light">Home</a>
+                    <a href="/tasks/" class="btn btn-sm btn-outline-light">Tasks</a>
+                </div>
+                <button class="btn btn-sm glow-btn" data-action="logout">Logout</button>
+            </div>
+        </nav>
+
+        <main class="container py-4">
+            <section class="panel p-4 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h1 class="h3 mb-1">Task Dashboard</h1>
+                    <p class="mb-0" style="color: var(--text-muted);">Live status overview with recent activity feed.
+                    </p>
+                </div>
+                <button class="btn btn-outline-light" id="reloadDashboard">Refresh Data</button>
+            </section>
+
+            <section class="row g-3 mb-4" id="metricsRow"></section>
+
+            <section class="panel p-4">
+                <h2 class="h5 mb-3">Recent Tasks</h2>
+                <div id="recentTasks" class="d-flex flex-column gap-2"></div>
+                <pre id="dashboardResponse" class="mt-3 mb-0">Loading dashboard data...</pre>
+            </section>
+        </main>
+    </div>
+
+    <script src="{% static 'js/app.js' %}"></script>
+    <script>
+        authGuard();
+        bindLogout();
+
+        const metricsRow = document.getElementById('metricsRow');
+        const recentTasks = document.getElementById('recentTasks');
+        const dashboardResponse = document.getElementById('dashboardResponse');
+
+        function renderMetrics(stats) {
+            const cards = [
+                ['Total', stats.total || 0],
+                ['Pending', stats.pending || 0],
+                ['Processing', stats.processing || 0],
+                ['Completed', stats.completed || 0],
+                ['Failed', stats.failed || 0],
+            ];
+
+            metricsRow.innerHTML = cards.map(([label, value]) => `
+                <div class="col-sm-6 col-lg-2">
+                    <article class="panel p-3 metric-card">
+                        <span style="color: var(--text-muted);">${label}</span>
+                        <span class="metric-value">${value}</span>
+                    </article>
+                </div>
+            `).join('');
+        }
+
+        function renderRecent(tasks) {
+            recentTasks.innerHTML = tasks.map((task) => `
+                <article class="panel p-3 d-flex justify-content-between align-items-center gap-3">
+                    <div>
+                        <h3 class="h6 mb-1">${task.title}</h3>
+                        <small style="color: var(--text-muted);">${task.task_type} • Priority ${task.priority}</small>
+                    </div>
+                    <span class="status-pill status-${task.status}">${task.status}</span>
+                </article>
+            `).join('') || '<p style="color: var(--text-muted);">No recent tasks available.</p>';
+        }
+
+        async function fetchDashboard() {
+            const { response, payload } = await apiRequest('/tasks/dashboard_stats/');
+            dashboardResponse.textContent = JSON.stringify({ status: response.status, payload }, null, 2);
+            if (!response.ok) return;
+            renderMetrics(payload.stats || {});
+            renderRecent(payload.recent_tasks || []);
+        }
+
+        document.getElementById('reloadDashboard').addEventListener('click', fetchDashboard);
+        fetchDashboard();
+    </script>
+</body>
+
+</html>
