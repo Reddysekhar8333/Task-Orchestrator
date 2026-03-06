@@ -15,8 +15,14 @@ class RegisterView(generics.CreateAPIView):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
+        if request.data.get('username') and not request.data.get('email'):
+            mutable_data = request.data.copy()
+            try:
+                mutable_data['email'] = User.objects.only('email').get(username=mutable_data['username']).email
+                request._full_data = mutable_data
+            except ObjectDoesNotExist:
+                pass
         response = super().post(request, *args, **kwargs)
-
         if response.status_code == 200:
             # Check both email and username as identifiers
             login_identifier = request.data.get('email') or request.data.get('username')
@@ -24,14 +30,15 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 try:
                     # Retrieve user by email to include profile data in response
                     user = User.objects.get(email=login_identifier)
-                    response.data['user'] = UserSerializer(user).data
                 except ObjectDoesNotExist:
                     # If user is not found by email, try fetching by username
                     try:
                         user = User.objects.get(username=login_identifier)
                         response.data['user'] = UserSerializer(user).data
                     except ObjectDoesNotExist:
-                        pass
+                        user = None
+                if user is not None:
+                    response.data['user'] = UserSerializer(user).data
         return response
 
 

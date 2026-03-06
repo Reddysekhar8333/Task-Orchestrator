@@ -44,7 +44,7 @@ def _sanitize_host_entry(host: str) -> str:
     return normalized.strip()
 
 def _get_allowed_hosts() -> list[str]:
-    raw_value = os.getenv('ALLOWED_HOSTS', '')
+    raw_value = os.getenv('ALLOWED_HOSTS', '127.0.0.1')
     if not raw_value:
         return ['localhost', '127.0.0.1']
     # Support multiple formats commonly used in CI/CD credentials:
@@ -74,6 +74,7 @@ def _get_allowed_hosts() -> list[str]:
 ENV = os.getenv('ENV', 'PROD').upper()
 SECRET_KEY = os.getenv('SECRET_KEY', 'default-insecure-key')
 DEBUG = _get_env_bool('DEBUG', ENV != 'PROD')
+# DEBUG = True
 ALLOWED_HOSTS = _get_allowed_hosts()
 
 USE_X_FORWARDED_HOST = True
