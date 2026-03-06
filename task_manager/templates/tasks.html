@@ -31,13 +31,6 @@
                             <input class="form-control" id="taskTitle" placeholder="Task title" required />
                             <textarea class="form-control" id="taskDescription" rows="3"
                                 placeholder="Task description"></textarea>
-                            <select class="form-select" id="taskType">
-                                <option value="DATA_PROCESSING">Data Processing</option>
-                                <option value="FILE_CONVERSION">File Conversion</option>
-                                <option value="IMAGE_PROCESSING">Image Processing</option>
-                                <option value="REPORT_GENERATION">Report Generation</option>
-                                <option value="EMAIL_NOTIFICATION">Email Notification</option>
-                            </select>
                             <select class="form-select" id="taskPriority">
                                 <option value="1">Low Priority</option>
                                 <option value="2" selected>Medium Priority</option>
@@ -70,9 +63,10 @@
                                 <thead>
                                     <tr>
                                         <th>Title</th>
-                                        <th>Type</th>
+                                        <th>Description</th>
                                         <th>Priority</th>
                                         <th>Status</th>
+                                        <th>Created</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -98,14 +92,15 @@
             taskTableBody.innerHTML = tasks.map((task) => `
                 <tr>
                     <td>${task.title}</td>
-                    <td>${task.task_type}</td>
+                    <td>${task.description || "-"}</td>
                     <td>${task.priority}</td>
                     <td><span class="status-pill status-${task.status}">${task.status}</span></td>
+                    <td>${new Date(task.created_at).toLocaleString()}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-light" onclick="cancelTask('${task.id}')">Cancel</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="5" class="text-center" style="color: var(--text-muted);">No tasks found.</td></tr>';
+            `).join('') || '<tr><td colspan="6" class="text-center" style="color: var(--text-muted);">No tasks found.</td></tr>';
         }
 
         async function fetchTasks() {
@@ -127,7 +122,6 @@
             const body = {
                 title: document.getElementById('taskTitle').value.trim(),
                 description: document.getElementById('taskDescription').value.trim(),
-                task_type: document.getElementById('taskType').value,
                 priority: Number(document.getElementById('taskPriority').value),
             };
 

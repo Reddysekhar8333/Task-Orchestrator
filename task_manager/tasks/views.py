@@ -20,13 +20,10 @@ class TaskViewSet(viewsets.ModelViewSet):
         queryset = Task.objects.filter(user=self.request.user).select_related('user')
 
         status_filter = self.request.query_params.get('status')
-        task_type = self.request.query_params.get('task_type')
         priority = self.request.query_params.get('priority')
 
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        if task_type:
-            queryset = queryset.filter(task_type=task_type)
         if priority:
             queryset = queryset.filter(priority=priority)
 

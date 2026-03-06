@@ -75,7 +75,7 @@
                 <article class="panel p-3 d-flex justify-content-between align-items-center gap-3">
                     <div>
                         <h3 class="h6 mb-1">${task.title}</h3>
-                        <small style="color: var(--text-muted);">${task.task_type} • Priority ${task.priority}</small>
+                        <small style="color: var(--text-muted);">Priority ${task.priority} • ${new Date(task.created_at).toLocaleDateString()}</small>
                     </div>
                     <span class="status-pill status-${task.status}">${task.status}</span>
                 </article>
