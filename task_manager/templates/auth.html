@@ -60,11 +60,15 @@
                                         required />
                                     <input class="form-control" id="registerPassword" type="password"
                                         placeholder="Password" required />
+                                    <small style="color: var(--text-muted);">
+                                        Use at least 8 characters and avoid common or numeric-only passwords and use a
+                                        capital letter.
+                                    </small>
                                     <button class="btn glow-btn" type="submit">Create account</button>
                                 </form>
                             </div>
                         </div>
-                        <pre id="authResponse" class="mt-4 mb-0">Ready to authenticate...</pre>
+                        <pre id="authResponse" class="mt-4 mb-0">Ready to authenticate</pre>
                     </section>
                 </div>
             </div>
@@ -75,6 +79,20 @@
     <script src="{% static 'javascript/app.js' %}"></script>
     <script>
         const authResponse = document.getElementById('authResponse');
+        function getAuthSummary(data) {
+            if (!data || typeof data !== 'object') {
+                return '';
+            }
+
+            return Object.entries(data)
+                .map(([field, messages]) => {
+                    if (!Array.isArray(messages)) {
+                        return `${field}: ${messages}`;
+                    }
+                    return `${field}: ${messages.join(' ')}`;
+                })
+                .join('\n');
+        }
 
         document.getElementById('loginForm').addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -89,7 +107,9 @@
                 body: JSON.stringify(payload),
             });
 
-            authResponse.textContent = JSON.stringify({ status: response.status, data }, null, 2);
+            const summary = getAuthSummary(data);
+            authResponse.textContent = JSON.stringify({ status: response.status, data }, null, 2)
+                + (summary ? `\n\n${summary}` : '');
             if (response.ok && data.access) {
                 setTokens(data.access, data.refresh || '');
                 window.location.href = '/dashboard/';
@@ -109,7 +129,8 @@
                 body: JSON.stringify(payload),
             });
 
-            authResponse.textContent = JSON.stringify({ status: response.status, data }, null, 2);
+            const summary = getAuthSummary(data);
+            authResponse.textContent = JSON.stringify({ status: response.status, data }, null, 2) + (summary ? `\n\n${summary}` : '');
             if (response.ok) {
                 const loginTab = new bootstrap.Tab(document.querySelector('[data-bs-target="#loginPane"]'));
                 loginTab.show();

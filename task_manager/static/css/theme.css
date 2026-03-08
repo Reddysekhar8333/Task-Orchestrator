@@ -189,5 +189,6 @@ pre {
 
 footer {
     margin-top: auto;
-    color: var(--text-muted);
+    /* color: var(--text-muted); */
+    color:#74ffcb;
 }

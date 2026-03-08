@@ -76,7 +76,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'default-insecure-key')
 DEBUG = _get_env_bool('DEBUG', ENV != 'PROD')
 # DEBUG = True
 ALLOWED_HOSTS = _get_allowed_hosts()
-
+# ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -205,7 +205,11 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR /'static'
+STATICFILES_DIRS = [
+    'task_manager/task_manager/static',
+]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
